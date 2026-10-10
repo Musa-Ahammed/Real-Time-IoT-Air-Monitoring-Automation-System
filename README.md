@@ -3,6 +3,7 @@
 An ESP32-based gas-sensor monitoring project. The device reads an analog sensor, sends readings over Wi-Fi using MQTT, and uses a Node.js bridge to store them in Firebase. A browser dashboard displays recent readings and history.
 
 The firmware sends **raw ADC values**. It does not convert them to CO₂ concentration, ppm, or an air-quality index, despite those labels in the dashboard.
+https://private-user-images.githubusercontent.com/37523526/603814861-2c3cd6b1-b97f-4749-9130-dfbafaf3b6f4.jpg?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTE2MzI2NzgsIm5iZiI6MTc5MTYzMjM3OCwicGF0aCI6Ii8zNzUyMzUyNi82MDM4MTQ4NjEtMmMzY2Q2YjEtYjk3Zi00NzQ5LTkxMzAtZGZiYWZhZjNiNmY0LmpwZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjEwMTAlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMDEwVDExMzkzOFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTdkMDJlOTBiZjYwMWVkMDg0NTc2MzRiMDViMjllOThjMDA0NTM0MTY0OTNjYjlmMTJlMGQ2ZDMxYjE3MzU2ZjEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRmpwZWcifQ.83fPR-iT0_hh-T27UcKPNI21ERzxmPOwS14eG3MqWqQ
 
 ## How it works
 
