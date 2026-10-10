@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CO2 Monitoring - ATM Gulshan-1</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --status-green: #10b981;
+            --status-orange: #f59e0b;
+            --status-red: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 24px;
+            box-sizing: border-box;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 15px;
+            width: 100%;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            letter-spacing: -0.025em;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            margin: 4px 0 0 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* Time Filter Button Menu Styles */
+        .filter-group {
+            display: flex;
+            background: #111827;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+
+        .filter-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn.active {
+            background: var(--accent-blue);
+            color: #0f172a;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #111827;
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1px solid #334155;
+        }
+
+        .switch-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            width: 100%;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid #334155;
+            padding: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .live-value-card {
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .live-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        #currentValue {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 15px 0;
+            transition: color 0.3s ease;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .stats-mini-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .mini-stat {
+            background: #111827;
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .mini-stat.peak { border-left-color: var(--status-red); }
+        .mini-stat.avg { border-left-color: var(--status-orange); }
+
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            height: 520px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #475569; transition: .3s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--status-red); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            header { gap: 10px; }
+            h1 { font-size: 1.4rem; }
+            #currentValue { font-size: 3rem; }
+            .chart-container { height: 320px; min-height: 320px; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <header>
+            <div>
+                <h1>CO2 Monitoring - ATM Gulshan-1</h1>
+                <p class="subtitle" id="viewStateLabel">System Health Node Environment Stream (Real-time)</p>
+            </div>
+            <div class="controls-wrapper">
+                <div class="filter-group">
+                    <button class="filter-btn active" id="btnRealtime">Real-time</button>
+                    <button class="filter-btn" id="btn1Hour">Last 1 Hour</button>
+                    <button class="filter-btn" id="btnYesterday">Yesterday</button>
+                </div>
+                <div class="controls">
+                    <span class="switch-label">AUDIBLE AUDIO ALARM</span>
+                    <label class="switch">
+                        <input type="checkbox" id="alarmToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <div class="sidebar">
+                <div class="card live-value-card">
+                    <div class="live-label" id="valueBoxLabel">Current Gas Level</div>
+                    <div id="currentValue" style="color: var(--status-green);">000</div>
+                    <div id="statusIndicator" class="status-badge">System Safe</div>
+                </div>
+
+                <div class="card stats-mini-grid">
+                    <div class="mini-stat peak">
+                        <div class="live-label">Peak Reading</div>
+                        <div id="peakValue" class="stat-val">0</div>
+                    </div>
+                    <div class="mini-stat avg">
+                        <div class="live-label">Average Matrix</div>
+                        <div id="avgValue" class="stat-val">0</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="live-label">Data Packets Logged</div>
+                        <div id="totalLogs" class="stat-val">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card chart-container">
+                <canvas id="gasChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, query, orderByChild, startAt, endAt, limitToLast, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCBxVrCL6BAbqN8qeDJNTuWEEiWu-v-8MI",
+            authDomain: "esp-mqtt-render-git-firebase.firebaseapp.com",
+            databaseURL: "https://esp-mqtt-render-git-firebase-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "esp-mqtt-render-git-firebase",
+            storageBucket: "esp-mqtt-render-git-firebase.firebasestorage.app",
+            messagingSenderId: "375524375305",
+            appId: "1:375524375305:web:f09d260f9ad280efcd71d8",
+            measurementId: "G-93Z3CD33E9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Web Audio Context setup for Alarm System
+        let audioCtx = null;
+        function playAlarmSound() {
+            if (!document.getElementById('alarmToggle').checked) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        // Setup ChartJS Dashboard Config
+        const ctx = document.getElementById('gasChart').getContext('2d');
+        const gasChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [{
+                    label: 'Gas Density (PPM Profile)',
+                    data: [], 
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.06)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#38bdf8',
+                    pointRadius: 3,
+                    tension: 0.25,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#f8fafc', font: { weight: 'bold' } } }
+                },
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' }, beginAtZero: true }
+                }
+            }
+        });
+
+        // Global lifecycle state variables to toggle between streams safely
+        let activeFirebaseUnsubscribe = null;
+        let historicalPeak = 0;
+
+        // Core processing function to draw lists cleanly
+        function updateDashboardUI(dataSnapshot, isHistoricalReport = false) {
+            const data = dataSnapshot;
+            if (!data) {
+                document.getElementById('totalLogs').innerText = "0";
+                gasChart.data.labels = [];
+                gasChart.data.datasets[0].data = [];
+                gasChart.update();
+                return;
+            }
+
+            const timestamps = [];
+            const gasValues = [];
+            let latestValue = 0;
+            let sum = 0;
+            let count = 0;
+
+            Object.keys(data).forEach(key => {
+                const log = data[key];
+                const timeString = new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                const val = Number(log.gas_value);
+                
+                timestamps.push(timeString);
+                gasValues.push(val);
+                latestValue = val;
+                sum += val;
+                count++;
+
+                if(val > historicalPeak) historicalPeak = val;
+            });
+
+            const avgValue = Math.round(sum / count);
+
+            // Update DOM counters
+            document.getElementById('peakValue').innerText = historicalPeak;
+            document.getElementById('avgValue').innerText = avgValue;
+            document.getElementById('totalLogs').innerText = count;
+
+            const numericValueDisplay = document.getElementById('currentValue');
+            const statusIndicator = document.getElementById('statusIndicator');
+
+            if (isHistoricalReport) {
+                // If displaying history, display the frame's final value instead of calling it "Live"
+                numericValueDisplay.innerText = latestValue;
+                numericValueDisplay.style.color = "var(--text-main)";
+                statusIndicator.innerText = "Report Mode";
+                statusIndicator.style.backgroundColor = "#475569";
+            } else {
+                // Handle active streaming UI alerts
+                numericValueDisplay.innerText = latestValue;
+                if (latestValue < 300) {
+                    numericValueDisplay.style.color = "var(--status-green)";
+                    statusIndicator.innerText = "System Safe";
+                    statusIndicator.style.backgroundColor = "var(--status-green)";
+                } else if (latestValue >= 300 && latestValue < 600) {
+                    numericValueDisplay.style.color = "var(--status-orange)";
+                    statusIndicator.innerText = "Elevated Leak Level";
+                    statusIndicator.style.backgroundColor = "var(--status-orange)";
+                } else {
+                    numericValueDisplay.style.color = "var(--status-red)";
+                    statusIndicator.innerText = "CRITICAL GAS EVACUATE";
+                    statusIndicator.style.backgroundColor = "var(--status-red)";
+                    playAlarmSound();
+                }
+            }
+
+            gasChart.data.labels = timestamps;
+            gasChart.data.datasets[0].data = gasValues;
+            gasChart.update();
+        }
+
+        // Clean memory leakage handlers when swapping channels
+        function detachListeners() {
+            if (activeFirebaseUnsubscribe) {
+                activeFirebaseUnsubscribe();
+                activeFirebaseUnsubscribe = null;
+            }
+        }
+
+        // MODE 1: Standard real-time view (Last 25 entries running live)
+        function loadRealtimeMode() {
+            detachListeners();
+            historicalPeak = 0;
+            document.getElementById('viewStateLabel').innerText = "System Health Node Environment Stream (Real-time)";
+            document.getElementById('valueBoxLabel').innerText = "Current Gas Level";
+
+            const realtimeQuery = query(ref(db, 'sensor_logs'), limitToLast(25));
+            activeFirebaseUnsubscribe = onValue(realtimeQuery, (snapshot) => {
+                updateDashboardUI(snapshot.val(), false);
+            });
+        }
+
+        // MODE 2: Filter by specific timestamp windows
+        async function loadHistoricalWindow(timeRangeMinutes) {
+            detachListeners();
+            historicalPeak = 0;
+            const now = Date.now();
+            const timeThreshold = now - (timeRangeMinutes * 60 * 1000);
+
+            document.getElementById('viewStateLabel').innerText = `Historical Report Log Profile (Last ${timeRangeMinutes / 60} Hour)`;
+            document.getElementById('valueBoxLabel').innerText = "Final Frame Value";
+
+            // Query Firebase for logs starting from our time threshold, ordered by timestamp
+            const historicalQuery = query(ref(db, 'sensor_logs'), orderByChild('timestamp'), startAt(timeThreshold));
+            
+            const snapshot = await get(historicalQuery);
+            updateDashboardUI(snapshot.val(), true);
+        }
+
+        // MODE 3: Full Yesterday window profile calculation rules
+        async function loadYesterdayMode() {
+            detachListeners();
+            historicalPeak = 0;
+
+            const now = new Date();
+            // Start of yesterday (00:00:00)
+            const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
+            // End of yesterday (23:59:59)
+            const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59).getTime();
+
+            document.getElementById('viewStateLabel').innerText = "Historical Report Log Profile (Yesterday Summary)";
+            document.getElementById('valueBoxLabel').innerText = "End of Day Value";
+
+            const yesterdayQuery = query(ref(db, 'sensor_logs'), orderByChild('timestamp'), startAt(startOfYesterday), endAt(endOfYesterday));
+            
+            const snapshot = await get(yesterdayQuery);
+            updateDashboardUI(snapshot.val(), true);
+        }
+
+        // Setup Button Event Click Actions
+        document.getElementById('btnRealtime').addEventListener('click', (e) => {
+            toggleActiveButton(e.target);
+            loadRealtimeMode();
+        });
+
+        document.getElementById('btn1Hour').addEventListener('click', (e) => {
+            toggleActiveButton(e.target);
+            loadHistoricalWindow(60); // 60 minutes
+        });
+
+        document.getElementById('btnYesterday').addEventListener('click', (e) => {
+            toggleActiveButton(e.target);
+            loadYesterdayMode();
+        });
+
+        function toggleActiveButton(targetButton) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            targetButton.classList.add('active');
+        }
+
+        // Initialize App on Live Stream by default on launch page layout
+        loadRealtimeMode();
+    </script>
+</body>
+</html>
